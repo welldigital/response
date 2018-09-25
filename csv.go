@@ -10,7 +10,10 @@ func CSV(v [][]string, w http.ResponseWriter, status int) (err error) {
 	w.Header().Set("Content-Type", "text/csv")
 	w.WriteHeader(status)
 	csvw := csv.NewWriter(w)
-	csvw.WriteAll(v)
+	err = csvw.WriteAll(v)
+	if err != nil {
+		return
+	}
 	csvw.Flush()
 	return
 }
