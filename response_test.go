@@ -1,6 +1,7 @@
 package response
 
 import (
+	"encoding/xml"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -195,6 +196,96 @@ func TestList(t *testing.T) {
 		}
 		if w.Body.String() != test.expectedBody {
 			t.Errorf("%s: expected body '%v', got '%v'", test.name, test.expectedBody, w.Body.String())
+		}
+	}
+}
+
+func TestCSV(t *testing.T) {
+	tests := []struct {
+		name         string
+		v            [][]string
+		status       int
+		expectedBody string
+		expectedErr  error
+	}{
+		{
+			name: "csv",
+			v: [][]string{
+				{
+					"header1",
+					"header2",
+				},
+				{
+					"1",
+					"2",
+				},
+			},
+			status:       http.StatusOK,
+			expectedBody: `header1,header2
+1,2
+`,
+		},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		actualErr := CSV(test.v, w, test.status)
+		if w.Code != test.status {
+			t.Errorf("%s: expected status %v, got %v", test.name, test.status, w.Code)
+		}
+		if w.Body.String() != test.expectedBody {
+			t.Errorf("%s: expected body '%v', got '%v'", test.name, test.expectedBody, w.Body.String())
+		}
+		if test.expectedErr == nil && actualErr != nil {
+			t.Fatalf("%s: error not expected, got '%v'", test.name, actualErr)
+		}
+		if test.expectedErr != nil && actualErr == nil {
+			t.Fatalf("%s: error expected '%v', got nil'", test.name, test.expectedErr)
+		}
+		if test.expectedErr != nil && test.expectedErr.Error() != actualErr.Error() {
+			t.Fatalf("%s: expected error '%v', got '%v'", test.name, test.expectedErr, actualErr)
+		}
+	}
+}
+
+type XMLExample struct {
+	XMLName xml.Name `xml:"Response"`
+	Message string   `xml:"Message"`
+}
+
+func TestXML(t *testing.T) {
+	tests := []struct {
+		name         string
+		v            interface{}
+		status       int
+		expectedBody string
+		expectedErr  error
+	}{
+		{
+			name: "xml",
+			v: XMLExample{Message:"message"},
+			status:       http.StatusOK,
+			expectedBody: `<Response><Message>message</Message></Response>`,
+		},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		actualErr := XML(test.v, w, test.status)
+		if w.Code != test.status {
+			t.Errorf("%s: expected status %v, got %v", test.name, test.status, w.Code)
+		}
+		if w.Body.String() != test.expectedBody {
+			t.Errorf("%s: expected body '%v', got '%v'", test.name, test.expectedBody, w.Body.String())
+		}
+		if test.expectedErr == nil && actualErr != nil {
+			t.Fatalf("%s: error not expected, got '%v'", test.name, actualErr)
+		}
+		if test.expectedErr != nil && actualErr == nil {
+			t.Fatalf("%s: error expected '%v', got nil'", test.name, test.expectedErr)
+		}
+		if test.expectedErr != nil && test.expectedErr.Error() != actualErr.Error() {
+			t.Fatalf("%s: expected error '%v', got '%v'", test.name, test.expectedErr, actualErr)
 		}
 	}
 }
