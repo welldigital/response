@@ -171,3 +171,33 @@ func TestList(t *testing.T) {
 		}
 	}
 }
+
+func TestRedirect(t *testing.T) {
+	tests := []struct {
+		name         string
+		url          string
+		status       int
+		expectedBody string
+	}{
+		{
+			name:         "redirect",
+			url:          "http://example.net/",
+			status:       http.StatusTemporaryRedirect,
+			expectedBody: "",
+		},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		Redirect(test.url, w, test.status)
+		if w.Code != test.status {
+			t.Errorf("%s: expected status %v, got %v", test.name, test.status, w.Code)
+		}
+		if w.Body.String() != test.expectedBody {
+			t.Errorf("%s: expected body '%v', got '%v'", test.name, test.expectedBody, w.Body.String())
+		}
+		if w.Header().Get("Location") != test.url {
+			t.Errorf("%s: expected Location header '%v', got '%v'", test.name, test.url, w.Header().Get("Location"))
+		}
+	}
+}
