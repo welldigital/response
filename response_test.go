@@ -95,10 +95,24 @@ func TestOK(t *testing.T) {
 	}
 }
 
+func TestErrorResponse(t *testing.T) {
+	e := NewErrorResponse(http.StatusOK, "error_code", "message")
+	if e.Error.StatusCode != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, e.Error.StatusCode)
+	}
+	if e.Error.ErrorCode != "error_code" {
+		t.Errorf("expected ErrorCode '%s', got '%s'", "error_code", e.Error.ErrorCode)
+	}
+	if e.Error.Message != "message" {
+		t.Errorf("expected Message '%s', got '%s'", "message", e.Error.Message)
+	}
+}
+
 func TestError(t *testing.T) {
 	tests := []struct {
 		name         string
 		err          error
+		data         map[string]interface{}
 		status       int
 		expectedBody string
 	}{
@@ -114,11 +128,24 @@ func TestError(t *testing.T) {
 			status:       http.StatusBadGateway,
 			expectedBody: `{"error":{"statusCode":502,"errorCode":"test1","message":"test2"}}`,
 		},
+		{
+			name: "test with data",
+			err:  errors.New("test2"),
+			data: map[string]interface{}{
+				"additionalValue": 123,
+			},
+			status:       http.StatusBadGateway,
+			expectedBody: `{"error":{"statusCode":502,"errorCode":"test with data","message":"test2","data":{"additionalValue":123}}}`,
+		},
 	}
 
 	for _, test := range tests {
 		w := httptest.NewRecorder()
-		Error(test.name, test.err, w, test.status)
+		if test.data == nil {
+			Error(test.name, test.err, w, test.status)
+		} else {
+			ErrorWithData(test.name, test.err, test.data, w, test.status)
+		}
 		if w.Code != test.status {
 			t.Errorf("%s: expected status %v, got %v", test.name, test.status, w.Code)
 		}
